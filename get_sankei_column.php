@@ -1,7 +1,7 @@
 #!/usr/local/bin/php -q
 <?php
 define("FILE_PATH", $_SERVER["HOME"] . "/Desktop/sankei/");
-define("FONT_PATH", "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc");
+define("FONT_PATH", "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc");
 
 define("BORDER_WIDTH", 3);
 define("PAGE_WIDTH", 1300 - BORDER_WIDTH * 2);
@@ -70,7 +70,7 @@ function get_column($clm_url){
 	$body = "";
 	foreach($clm as $ln){
 		if(preg_match("/<span id=\"__r_publish_date__\">([0-9 \.:]+)<\/span>/", $ln, $match)){
-			$date=$match[1];
+			$date_time=$match[1];
 		}
 		if(preg_match("/<span id=\"__r_article_title__\" class=\"pis_title\">([^<]+)<\/span>/", $ln, $match)){
 			$title=$match[1];
@@ -87,7 +87,7 @@ function get_column($clm_url){
 			}
 		}
 	}
-	return array("title"=>$title, "date"=>$date, "body"=>$body);
+	return array("title"=>$title, "date_time"=>$date_time, "body"=>$body);
 }
 
 function newImage(){
@@ -120,21 +120,21 @@ function drawColumn($clm){
 	$baseY = MARGIN_HEIGHT;
 	imDrawAnnotation($draw, $wrappedTitle, $titleFontSize, $baseY);
 
-	// Draw Date
-	$dateFontSize = 24;
-	$draw->setFontSize($dateFontSize);
-	$wrappedDate = imWrapText($clm["date"], $im, $draw);
+	// Draw DateTime
+	$dateTimeFontSize = 24;
+	$draw->setFontSize($dateTimeFontSize);
+	$wrappedDateTime = imWrapText($clm["date_time"], $im, $draw);
 	$baseY += count($wrappedTitle) * $titleFontSize * LINE_HEIGHT;
-	imDrawAnnotation($draw, $wrappedDate, $dateFontSize, $baseY);
+	imDrawAnnotation($draw, $wrappedDateTime, $dateTimeFontSize, $baseY);
 
 	// Draw Body
 	$bodyFontSize = 32;
 	$draw->setFontSize($bodyFontSize);
 	$wrappedBody = imWrapText($clm["body"], $im, $draw);
-	$baseY += count($wrappedDate) * $dateFontSize * LINE_HEIGHT + 50;
+	$baseY += count($wrappedDateTime) * $dateTimeFontSize * LINE_HEIGHT + 50;
 	$line_drawn = imDrawAnnotation($draw, $wrappedBody, $bodyFontSize, $baseY);
 	while($line_drawn > 0){
-		save_image($im, $draw, $baseY + $line_drawn * $bodyFontSize * LINE_HEIGHT, $clm["date"], $page_no);
+		save_image($im, $draw, $baseY + $line_drawn * $bodyFontSize * LINE_HEIGHT, $clm["date_time"], $page_no);
 		$im = newImage();
 		$draw = newDraw();
 		$draw->setFontSize($bodyFontSize);
@@ -142,16 +142,17 @@ function drawColumn($clm){
 		$baseY = MARGIN_HEIGHT;
 		$line_drawn = imDrawAnnotation($draw, $wrappedBody, $bodyFontSize, $baseY);
 	}
-	save_image($im, $draw, $baseY + count($wrappedBody) * $bodyFontSize * LINE_HEIGHT - 50, $clm["date"], $page_no);
+	save_image($im, $draw, $baseY + count($wrappedBody) * $bodyFontSize * LINE_HEIGHT - 50, $clm["date_time"], $page_no);
 }
 
-function save_image($im, $draw, $page_height, $date, &$page_no){
+function save_image($im, $draw, $page_height, $date_time, &$page_no){
 	$im->cropImage($im->getImageWidth(), $page_height, 0, 0);
 	$im->borderImage(new ImagickPixel("black"), BORDER_WIDTH, BORDER_WIDTH);
 	$im->drawImage($draw);
 	$im->setImageFormat("png");
-	list($day, $time) = explode(" ", $date);
-	$fname = FILE_PATH . $day . sprintf("-%02d", $page_no) . ".png";
+	list($date, $time) = explode(" ", $date_time);
+	list($year, $month, $day) = explode(".", $date);
+	$fname = FILE_PATH . sprintf("%02d.%02d.%02d-%02d", $year, $month, $day, $page_no) . ".png";
 	$im->writeImage($fname);
 	$im->clear();
 	$im->destroy();
